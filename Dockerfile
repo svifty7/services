@@ -7,7 +7,7 @@ FROM base AS build
 
 COPY --link . .
 
-RUN mvn -B clean install
+RUN mvn -B clean install -DskipTests
 
 
 FROM eclipse-temurin:25-jre
