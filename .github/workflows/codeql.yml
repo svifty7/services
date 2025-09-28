@@ -37,10 +37,10 @@ jobs:
       with:
         distribution: temurin
         java-version: 21
-        cache: maven
+        cache: gradle
 
-    - name: Maven Install
-      run: mvn -B clean install -DskipTests
+    - name: Gradle Install
+      run: ./gradlew clean build
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3

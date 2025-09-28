@@ -1,19 +1,11 @@
-FROM maven:3-eclipse-temurin-25 AS base
-
+FROM eclipse-temurin:25 AS build
 WORKDIR /opt/app
-
-
-FROM base AS build
-
 COPY --link . .
+RUN ./gradlew clean build
 
-RUN mvn -B clean install -DskipTests
-
-
-FROM eclipse-temurin:25-jre
-
+FROM eclipse-temurin:25-jre-alpine
 WORKDIR /opt/app
-
-COPY --from=build /opt/app/target/services.jar services.jar
-
-ENTRYPOINT ["java","-jar","services.jar"]
+ENV TZ=UTC
+COPY --from=build /opt/app/build/libs/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java","-jar","/app.jar"]
