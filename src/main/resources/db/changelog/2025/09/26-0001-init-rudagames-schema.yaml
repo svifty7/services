@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - changeSet:
+      id: init-rudagames-schema
+      author: svifty7
+      changes:
+        - sql:
+            sql: create schema if not exists rudagames;

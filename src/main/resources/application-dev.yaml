@@ -1,0 +1,13 @@
+spring:
+  config:
+    import:
+      - config/application-actuator.yaml
+      - config/application-database.yaml
+      - config/application-liquibase.yaml
+      - config/application-springdoc.yaml
+      - config/application-logging.yaml
+      - config/application-rudagames.yaml
+      - config/application-security.yaml
+      - config/application-vk.yaml
+    activate:
+      on-profile: dev

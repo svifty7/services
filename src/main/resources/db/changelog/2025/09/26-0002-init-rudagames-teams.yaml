@@ -1,0 +1,27 @@
+databaseChangeLog:
+  - changeSet:
+      id: init-rudagames-teams
+      author: svifty7
+      changes:
+        - createTable:
+            schemaName: rudagames
+            tableName: teams
+            columns:
+              - column:
+                  name: id
+                  type: integer
+                  constraints:
+                    primaryKey: true
+
+              - column:
+                  name: name
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+
+        - sqlFile:
+            dbms: postgresql
+            path: sql/insert-teams.sql
+            relativeToChangelogFile: true
+            splitStatements: true
+            stripComments: true

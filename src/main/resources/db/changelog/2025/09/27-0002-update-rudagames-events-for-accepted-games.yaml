@@ -1,0 +1,33 @@
+databaseChangeLog:
+  - changeSet:
+      id: update-rudagames-events-for-accepted-games
+      author: svifty7
+      changes:
+        - addColumn:
+            tableName: events
+            schemaName: rudagames
+            columns:
+              - column:
+                  name: announced_at
+                  type: timestamp
+
+              - column:
+                  name: accepted_at
+                  type: timestamp
+
+              - column:
+                  name: team_id
+                  type: integer
+
+              - column:
+                  name: notified_at
+                  type: timestamp
+
+        - addForeignKeyConstraint:
+            constraintName: fk_events_team
+            baseTableSchemaName: rudagames
+            baseTableName: events
+            baseColumnNames: team_id
+            referencedTableSchemaName: rudagames
+            referencedTableName: teams
+            referencedColumnNames: id

@@ -1,0 +1,16 @@
+rudagames:
+  api:
+    baseUrl: https://api.rudagames.com
+    signIn: /login
+    events: /events/dates
+    locations: /locations
+    cities: /locations/cities
+    countries: /locations/countries
+    accepted-games: /players/applications
+    products: /products
+  location:
+    city: 54
+    country: 10
+  account:
+    email: ${RUDAGAMES_EMAIL}
+    password: ${RUDAGAMES_PASSWORD}
