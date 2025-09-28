@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.svifty7.services.domain.rudagames.dto.AcceptedGame;
+import ru.svifty7.services.domain.rudagames.dto.CityEvent;
 import ru.svifty7.services.domain.rudagames.entity.EventEntity;
 import ru.svifty7.services.domain.rudagames.entity.TeamEntity;
 import ru.svifty7.services.domain.rudagames.exception.NoEventsForNotifyException;
@@ -18,8 +19,9 @@ import ru.svifty7.services.domain.rudagames.repository.TeamsRepository;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -42,20 +44,40 @@ public class EventsService {
     @Transactional
     public void updateEvents() {
         try {
-            List<EventEntity> events = rudagamesFeign
-                    .getEvents(cityId).stream()
-                    .map(eventsMapper::toEntity)
+            List<CityEvent> cityEvents = rudagamesFeign.getEvents(cityId);
+
+            log.info("upcoming events count: {}", cityEvents.size());
+
+            List<UUID> uuidList = cityEvents.stream()
+                    .map(CityEvent::eventRecordId)
                     .toList();
 
-            log.info("upcoming events count: {}", events.size());
+            List<EventEntity> existingEvents = eventsRepository.findByUuidList(uuidList);
+
+            Map<UUID, EventEntity> existingMap = existingEvents.stream()
+                    .collect(Collectors.toMap(EventEntity::getUuid, Function.identity()));
+
+            List<EventEntity> eventsToSave = new ArrayList<>();
+
+            for (CityEvent cityEvent : cityEvents) {
+                UUID uuid = cityEvent.eventRecordId();
+                EventEntity event = existingMap.get(uuid);
+
+                if (event != null) {
+                    eventsMapper.updateEntity(cityEvent, event);
+                } else {
+                    event = eventsMapper.toEntity(cityEvent);
+                }
+
+                eventsToSave.add(event);
+            }
 
             List<AcceptedGame> acceptedGames = rudagamesFeign.getAcceptedGames(cityId);
-
             log.info("accepted games: {}", acceptedGames.stream().map(AcceptedGame::eventRecordId));
 
             List<TeamEntity> teams = teamsRepository.findAll();
 
-            for (EventEntity event : events) {
+            for (EventEntity event : eventsToSave) {
                 Optional<AcceptedGame> acceptedGame = acceptedGames.stream()
                         .filter(game -> game.eventRecordId().equals(event.getUuid())).findFirst();
 
@@ -70,15 +92,15 @@ public class EventsService {
                 }
             }
 
-            eventsRepository.saveAll(events);
+            eventsRepository.saveAll(eventsToSave);
 
             log.info("update events is done");
         } catch (Exception e) {
             log.error("update events failed", e);
-
             throw new UpdateEventsException();
         }
     }
+
 
     @Transactional
     public void announceEvent() {
