@@ -13,7 +13,7 @@ public class ScheduledTasks {
 
     private final EventsService eventsService;
 
-    @Scheduled(cron = "0 7 18 * * *")
+    @Scheduled(cron = "0 7 18 13-19 * *")
     public void announceEvent() {
         try {
             eventsService.announceEvent();
@@ -22,7 +22,7 @@ public class ScheduledTasks {
         }
     }
 
-    @Scheduled(cron = "0 23 13 * * FRI")
+    @Scheduled(cron = "0 23 13-19 * * *")
     public void notifyAboutRegistration() {
         try {
             eventsService.announceEvent();

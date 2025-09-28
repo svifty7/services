@@ -1,4 +1,4 @@
 vk:
-  peer-id: ${VK_PEER_ID}
-  group-id: ${VK_GROUP_ID}
-  access-token: ${VK_ACCESS_TOKEN}
+  group:
+    id: ${VK_GROUP_ID}
+    token: ${VK_GROUP_TOKEN}

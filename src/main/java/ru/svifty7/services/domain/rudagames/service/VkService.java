@@ -25,48 +25,50 @@ import java.util.Random;
 public class VkService {
 
     private final Random random = new Random();
-    private final VkApiClient vk;
-    private final GroupActor actor;
+    private final VkApiClient vkApiClient;
+    private final GroupActor groupActor;
     private final Integer peerId;
 
     public VkService(
-            @Value("${vk.peer-id}") int peerId,
-            @Value("${vk.group-id}") int groupId,
-            @Value("${vk.access-token}") String accessToken) {
+            @Value("${vk.group.id}") int groupId,
+            @Value("${vk.group.token}") String accessToken,
+            @Value("${rudagames.vk.team-chat-id}") int peerId
+    ) {
         TransportClient transportClient = new HttpTransportClient();
-        this.vk = new VkApiClient(transportClient);
-        this.actor = new GroupActor(groupId, accessToken);
+        this.vkApiClient = new VkApiClient(transportClient);
+        this.groupActor = new GroupActor(groupId, accessToken);
         this.peerId = peerId;
     }
 
     public void sendMessageWithPhoto(String markdownText, String imageUrl) throws ClientException, ApiException, IOException {
         File tempFile = Files.createTempFile("vk_img_", ".jpg").toFile();
+
         try {
             FileUtils.copyURLToFile(URI.create(imageUrl).toURL(), tempFile);
 
-            GetMessagesUploadServerResponse uploadSrv = vk.photos()
-                    .getMessagesUploadServer(actor)
-                    .peerId(peerId)
+            GetMessagesUploadServerResponse uploadSrv = vkApiClient.photos()
+                    .getMessagesUploadServer(groupActor)
                     .execute();
 
-            PhotoUploadResponse upload = vk.upload()
+            PhotoUploadResponse upload = vkApiClient.upload()
                     .photo(uploadSrv.getUploadUrl().toString(), tempFile)
                     .execute();
 
-            if (upload.getPhoto() == null || upload.getPhoto().length() < 3)
+            if (upload.getPhoto() == null || upload.getPhoto().length() < 3) {
                 throw new IllegalStateException("upload.photo is empty");
+            }
 
-            SaveMessagesPhotoResponse saved = vk.photos()
-                    .saveMessagesPhoto(actor, upload.getPhoto())
+            SaveMessagesPhotoResponse saved = vkApiClient.photos()
+                    .saveMessagesPhoto(groupActor, upload.getPhoto())
                     .server(upload.getServer())
                     .hash(upload.getHash())
                     .execute()
                     .getFirst();
 
-            String attachment = "photo" + saved.getOwnerId() + '_' + saved.getId();
+            String attachment = String.format("photo%s_%s", saved.getOwnerId(), saved.getId());
 
-            vk.messages()
-                    .send(actor)
+            vkApiClient.messages()
+                    .send(groupActor)
                     .peerId(peerId)
                     .message(markdownText)
                     .attachment(attachment)
@@ -79,8 +81,8 @@ public class VkService {
     }
 
     public void sendMessage(String messageText) throws ClientException, ApiException {
-        vk.messages()
-                .send(actor)
+        vkApiClient.messages()
+                .send(groupActor)
                 .peerId(peerId)
                 .message(messageText)
                 .randomId(random.nextInt())

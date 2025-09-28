@@ -8,9 +8,14 @@ rudagames:
     countries: /locations/countries
     accepted-games: /players/applications
     products: /products
+
   location:
     city: 54
     country: 10
+
   account:
     email: ${RUDAGAMES_EMAIL}
     password: ${RUDAGAMES_PASSWORD}
+
+  vk:
+    team-chat-id: ${RUDAGAMES_VK_TEAM_CHAT_ID}
