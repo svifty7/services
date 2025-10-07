@@ -8,6 +8,9 @@ group = "ru.svifty7"
 version = "0.0.1-SNAPSHOT"
 description = "services"
 
+val isDevelopment: Boolean = project.hasProperty("dev")
+val isLocal: Boolean = project.hasProperty("local")
+
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(25))
@@ -60,6 +63,5 @@ dependencies {
 
     // Runtime-only
     runtimeOnly("org.springframework.boot:spring-boot-devtools")
-    runtimeOnly("org.springframework.boot:spring-boot-docker-compose")
     runtimeOnly("org.postgresql:postgresql")
 }
