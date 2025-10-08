@@ -14,8 +14,8 @@ rudagames:
     country: 10
 
   account:
-    email: ${RUDAGAMES_EMAIL}
-    password: ${RUDAGAMES_PASSWORD}
+    email: ${RUDAGAMES_ACCOUNT_EMAIL}
+    password: ${RUDAGAMES_ACCOUNT_PASSWORD}
 
   vk:
     team-chat-id: ${RUDAGAMES_VK_TEAM_CHAT_ID}

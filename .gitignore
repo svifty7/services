@@ -1,5 +1,6 @@
 src/main/resources/application-local.*
 src/main/resources/config/local
+.env
 
 ### Gradle ###
 .gradle/
