@@ -8,12 +8,14 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.svifty7.services.domain.rudagames.dto.AcceptedGame;
 import ru.svifty7.services.domain.rudagames.dto.CityEvent;
 import ru.svifty7.services.domain.rudagames.entity.EventEntity;
+import ru.svifty7.services.domain.rudagames.entity.ProductEntity;
 import ru.svifty7.services.domain.rudagames.entity.TeamEntity;
 import ru.svifty7.services.domain.rudagames.exception.NoEventsForNotifyException;
 import ru.svifty7.services.domain.rudagames.exception.UpdateEventsException;
 import ru.svifty7.services.domain.rudagames.feign.RudagamesFeign;
 import ru.svifty7.services.domain.rudagames.mapper.EventsMapper;
 import ru.svifty7.services.domain.rudagames.repository.EventsRepository;
+import ru.svifty7.services.domain.rudagames.repository.ProductsRepository;
 import ru.svifty7.services.domain.rudagames.repository.TeamsRepository;
 
 import java.time.Instant;
@@ -33,6 +35,7 @@ public class EventsService {
     private final EventsRepository eventsRepository;
     private final TeamsRepository teamsRepository;
     private final VkService vkService;
+    private final ProductsRepository productsRepository;
 
     @Value("${rudagames.location.city}")
     private Integer cityId;
@@ -46,9 +49,17 @@ public class EventsService {
         try {
             List<CityEvent> cityEvents = rudagamesFeign.getEvents(cityId);
 
-            log.info("upcoming events count: {}", cityEvents.size());
+            List<Integer> availableProductIds = productsRepository.findAll().stream()
+                    .map(ProductEntity::getId)
+                    .toList();
 
-            List<UUID> uuidList = cityEvents.stream()
+            List<CityEvent> filteredEvents = cityEvents.stream()
+                    .filter(cityEvent -> availableProductIds.contains(cityEvent.productId()))
+                    .toList();
+
+            log.info("upcoming events count: {}", filteredEvents.size());
+
+            List<UUID> uuidList = filteredEvents.stream()
                     .map(CityEvent::eventRecordId)
                     .toList();
 
@@ -59,7 +70,7 @@ public class EventsService {
 
             List<EventEntity> eventsToSave = new ArrayList<>();
 
-            for (CityEvent cityEvent : cityEvents) {
+            for (CityEvent cityEvent : filteredEvents) {
                 UUID uuid = cityEvent.eventRecordId();
                 EventEntity event = existingMap.get(uuid);
 
@@ -128,19 +139,14 @@ public class EventsService {
 
         sb.append("📢 Анонс предстоящей игры!\n\n");
 
-        sb.append("🎲 ").append(e.getProduct());
+        sb.append("🎲 ").append(e.getProduct().getName());
 
         if (e.getTag() != null && !e.getTag().isBlank()) {
             sb.append(e.getTag());
         }
 
-        sb.append(" ").append(e.getName()).append('\n');
-
-        if (e.getType() != null && !e.getType().isBlank()) {
-            sb.append("📌 Тема: ").append(e.getType()).append('\n');
-        }
-
-        sb.append("📅 ").append(DATE_TIME_FORMATTER.format(e.getPlayAt())).append('\n');
+        sb.append("\n").append("📌 ").append(e.getName());
+        sb.append('\n').append("📅 ").append(DATE_TIME_FORMATTER.format(e.getPlayAt())).append('\n');
 
         if (e.getDescription() != null && !e.getDescription().isBlank()) {
             sb.append('\n').append(e.getDescription().strip());
@@ -177,24 +183,17 @@ public class EventsService {
                 .append(e.getTeam().getName())
                 .append(", перекличка!\n\n");
 
-        sb.append("🎲️ ").append(e.getProduct());
+        sb.append("🎲️ ").append(e.getProduct().getName());
 
         if (e.getTag() != null && !e.getTag().isBlank()) {
             sb.append(" ").append(e.getTag());
         }
 
-        sb.append(" ")
-                .append(e.getName()
-                        .replaceFirst("(?i)" + e.getProduct() + "\\s*", ""))
-                .append('\n');
+        sb.append("\n")
+                .append("📌 ").append(e.getName().replaceFirst("(?i)" + e.getProduct().getName() + "\\s*", ""));
 
-        if (e.getType() != null && !e.getType().isBlank()) {
-            sb.append("📌 Тема: ")
-                    .append(e.getType())
-                    .append('\n');
-        }
-
-        sb.append("📅 Дата и время: ")
+        sb.append('\n')
+                .append("📅 Дата и время: ")
                 .append(DATE_TIME_FORMATTER.format(e.getPlayAt()))
                 .append('\n')
                 .append("👥 Мест: ")

@@ -29,8 +29,9 @@ public class EventEntity {
     @Column(name = "registration_start_at", nullable = false)
     private Instant registrationStartAt;
 
-    @Column(nullable = false)
-    private String product;
+    @JoinColumn(name = "product_id", referencedColumnName = "id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, targetEntity = ProductEntity.class)
+    private ProductEntity product;
 
     private String description;
 
@@ -69,7 +70,7 @@ public class EventEntity {
     private Instant acceptedAt;
 
     @JoinColumn(name = "team_id", referencedColumnName = "id")
-    @OneToOne(fetch = FetchType.EAGER, targetEntity = TeamEntity.class)
+    @ManyToOne(fetch = FetchType.EAGER, targetEntity = TeamEntity.class)
     private TeamEntity team;
 
     @Column(name = "notified_at")
