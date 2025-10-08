@@ -40,9 +40,8 @@ public class EventsService {
     @Value("${rudagames.location.city}")
     private Integer cityId;
 
-    private static final DateTimeFormatter DATE_TIME_FORMATTER =
-            DateTimeFormatter.ofPattern("dd MMMM yyyy HH:mm")
-                    .withZone(ZoneId.of("Europe/Kirov"));
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter
+            .ofPattern("dd MMMM yyyy HH:mm").withZone(ZoneId.of("Europe/Kirov"));
 
     @Transactional
     public void updateEvents() {

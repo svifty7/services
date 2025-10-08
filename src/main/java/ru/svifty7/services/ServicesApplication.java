@@ -17,6 +17,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.TimeZone;
 
@@ -33,6 +34,7 @@ public class ServicesApplication {
 
     static void main(String[] args) {
         TimeZone.setDefault(TimeZone.getTimeZone("Europe/Moscow"));
+        Locale.setDefault(Locale.forLanguageTag("ru-RU"));
         SpringApplication app = new SpringApplication(ServicesApplication.class);
         Environment env = app.run(args).getEnvironment();
         logApplicationStartup(env);
