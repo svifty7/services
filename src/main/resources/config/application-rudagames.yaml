@@ -1,7 +1,7 @@
 rudagames:
   api:
-    baseUrl: https://api.rudagames.com
-    signIn: /login
+    base-url: https://api.rudagames.com
+    sign-in: /login
     events: /events/dates
     locations: /locations
     cities: /locations/cities
@@ -13,7 +13,7 @@ rudagames:
     city: 54
     country: 10
 
-  account:
+  auth:
     email: ${RUDAGAMES_ACCOUNT_EMAIL}
     password: ${RUDAGAMES_ACCOUNT_PASSWORD}
 

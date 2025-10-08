@@ -166,9 +166,6 @@ public record CityEvent(
         @JsonProperty("hasOtherEventDays")
         boolean hasOtherEventDays,
 
-        @JsonProperty("application_custom_design")
-        ApplicationCustomDesign applicationCustomDesign,
-
         @JsonProperty("altern_registration_link")
         String alternRegistrationLink,  // Nullable
 

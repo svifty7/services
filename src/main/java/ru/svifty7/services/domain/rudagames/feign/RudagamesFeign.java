@@ -10,7 +10,7 @@ import ru.svifty7.services.domain.rudagames.dto.CityEvent;
 
 import java.util.List;
 
-@FeignClient(name = "rudagames-feign", url = "${rudagames.api.baseUrl}", configuration = RudagamesFeignConfig.class)
+@FeignClient(name = "rudagames-feign", url = "${rudagames.api.base-url}", configuration = RudagamesFeignConfig.class)
 public interface RudagamesFeign {
 
     @GetMapping("${rudagames.api.events}/{cityId}")

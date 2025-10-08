@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import ru.svifty7.services.domain.rudagames.dto.Response;
+import ru.svifty7.services.domain.rudagames.exception.AuthException;
 import ru.svifty7.services.domain.rudagames.exception.NoEventsForNotifyException;
 import ru.svifty7.services.domain.rudagames.exception.UpdateEventsException;
 
@@ -18,6 +19,14 @@ public class Handler {
         log.warn("{} {}", e.getClass(), e.getMessage());
 
         return ResponseEntity.status(HttpStatus.ALREADY_REPORTED).build();
+    }
+
+    @ExceptionHandler({AuthException.class})
+    public ResponseEntity<Response> handleAuthException(Exception e) {
+        log.warn("{} {}", e.getClass(), e.getMessage());
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new Response(401, "Ошибка авторизации", e.getMessage()));
     }
 
     @ExceptionHandler({UpdateEventsException.class})
