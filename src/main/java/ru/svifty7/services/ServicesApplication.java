@@ -7,8 +7,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cloud.openfeign.EnableFeignClients;
-import org.springframework.cloud.openfeign.FeignAutoConfiguration;
 import org.springframework.core.env.Environment;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.retry.annotation.EnableRetry;
@@ -28,8 +26,7 @@ import java.util.TimeZone;
 @EnableAsync
 @EnableScheduling
 @EnableRetry
-@EnableFeignClients
-@ImportAutoConfiguration({FeignAutoConfiguration.class})
+@ImportAutoConfiguration
 public class ServicesApplication {
 
     static void main(String[] args) {

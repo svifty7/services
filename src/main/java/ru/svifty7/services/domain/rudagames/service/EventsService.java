@@ -2,7 +2,6 @@ package ru.svifty7.services.domain.rudagames.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.svifty7.services.domain.rudagames.dto.AcceptedGame;
@@ -12,7 +11,6 @@ import ru.svifty7.services.domain.rudagames.entity.ProductEntity;
 import ru.svifty7.services.domain.rudagames.entity.TeamEntity;
 import ru.svifty7.services.domain.rudagames.exception.NoEventsForNotifyException;
 import ru.svifty7.services.domain.rudagames.exception.UpdateEventsException;
-import ru.svifty7.services.domain.rudagames.feign.RudagamesFeign;
 import ru.svifty7.services.domain.rudagames.mapper.EventsMapper;
 import ru.svifty7.services.domain.rudagames.repository.EventsRepository;
 import ru.svifty7.services.domain.rudagames.repository.ProductsRepository;
@@ -30,15 +28,14 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EventsService {
 
-    private final EventsMapper eventsMapper;
-    private final RudagamesFeign rudagamesFeign;
-    private final EventsRepository eventsRepository;
     private final TeamsRepository teamsRepository;
-    private final VkService vkService;
+    private final EventsRepository eventsRepository;
     private final ProductsRepository productsRepository;
 
-    @Value("${rudagames.location.city}")
-    private Integer cityId;
+    private final EventsMapper eventsMapper;
+
+    private final VkService vkService;
+    private final RudagamesService rudagamesService;
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter
             .ofPattern("dd MMMM yyyy HH:mm").withZone(ZoneId.of("Europe/Kirov"));
@@ -46,7 +43,7 @@ public class EventsService {
     @Transactional
     public void updateEvents() {
         try {
-            List<CityEvent> cityEvents = rudagamesFeign.getEvents(cityId);
+            List<CityEvent> cityEvents = rudagamesService.getEvents();
 
             List<Integer> availableProductIds = productsRepository.findAll().stream()
                     .map(ProductEntity::getId)
@@ -82,7 +79,7 @@ public class EventsService {
                 eventsToSave.add(event);
             }
 
-            List<AcceptedGame> acceptedGames = rudagamesFeign.getAcceptedGames(cityId);
+            List<AcceptedGame> acceptedGames = rudagamesService.getAcceptedGames();
             log.info("accepted games: {}", acceptedGames.stream().map(AcceptedGame::eventRecordId));
 
             List<TeamEntity> teams = teamsRepository.findAll();

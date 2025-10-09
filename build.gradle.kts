@@ -46,9 +46,13 @@ dependencies {
     implementation("io.hypersistence:hypersistence-utils-hibernate-63:3.9.2")
     implementation("org.springframework.retry:spring-retry:2.0.11")
     implementation("org.springframework:spring-aspects:6.2.11")
-    implementation("org.springframework.cloud:spring-cloud-starter-openfeign:4.3.0")
     implementation("commons-io:commons-io:2.18.0")
     implementation("com.vk.api:sdk:1.0.14")
+
+    // okhttp
+    implementation(platform("com.squareup.okhttp3:okhttp-bom:5.2.0"))
+    implementation("com.squareup.okhttp3:okhttp")
+    implementation("com.squareup.okhttp3:logging-interceptor")
 
     // MapStruct
     implementation("org.mapstruct:mapstruct:1.6.3")

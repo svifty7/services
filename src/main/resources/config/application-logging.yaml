@@ -1,4 +1,3 @@
 logging:
   level:
     liquibase: ERROR
-    feign: DEBUG
