@@ -16,7 +16,7 @@ jobs:
   build:
     name: Build Docker Image
     runs-on: ubuntu-latest
-    if: ${{ github.head_ref != 'main' && github.head_ref != 'dev' }}
+    if: ${{ github.ref_name == 'main' || github.ref_name == 'dev' }}
     concurrency:
       group: build-${{ github.ref_name }}
       cancel-in-progress: true
@@ -39,8 +39,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository }}
           tags: |
-            type=ref,event=pr,enbled=${{ github.event_name == 'pull_request' }}
-            type=ref,event=branch,enbled=${{ github.event_name != 'pull_request' }}
+            type=ref,event=pr,enabled=${{ github.event_name == 'pull_request' }}
+            type=ref,event=branch,enabled=${{ github.event_name != 'pull_request' }}
             type=raw,value=latest,enabled=${{ github.ref_name == 'main' }}
           labels: |
             org.opencontainers.image.title=${{ github.repository }}
@@ -64,28 +64,33 @@ jobs:
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 
-#  update:
-#    name: Update Server
-#    needs: build
-#    runs-on: ubuntu-latest
-#    if: ${{ github.ref_name == 'main' || github.ref_name == 'dev' }}
-#    concurrency:
-#      group: update-${{ github.ref_name == 'main' && 'prod' || 'dev' }}-server
-#      cancel-in-progress: false
-#    env:
-#      SERVICE_NAME: svifty7-services-${{ github.ref_name == 'main' && 'prod' || 'dev' }}
-#      CONFIG_FILE: ${{ secrets.BEGET_SSH_PATH }}/${{ github.ref_name == 'main' && 'prod' || 'dev' }}/compose.yaml
-#    steps:
-#      - uses: appleboy/ssh-action@master
-#        with:
-#          host: ${{secrets.BEGET_SSH_HOST}}
-#          username: ${{secrets.BEGET_SSH_USER}}
-#          key: ${{secrets.BEGET_SSH_KEY}}
-#          port: ${{secrets.BEGET_SSH_PORT}}
-#          script: |
-#            docker compose -f ${{ env.CONFIG_FILE }} pull ${{ env.SERVICE_NAME }} && \
-#              docker compose -f ${{ env.CONFIG_FILE }} build ${{ env.SERVICE_NAME }} && \
-#              docker compose -f ${{ env.CONFIG_FILE }} up ${{ env.SERVICE_NAME }} \
-#                --no-deps \
-#                --detach
-#            docker rmi $(docker images --filter "dangling=true" -q --no-trunc) &
+  update:
+    name: Update Server
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ github.ref_name == 'main' || github.ref_name == 'dev' }}
+    concurrency:
+      group: update-${{ github.ref_name == 'main' && 'prod' || 'dev' }}-server
+      cancel-in-progress: false
+    env:
+      SERVICE_NAME: svifty7-services-api
+      CONFIG_FILE: ${{ secrets.BEGET_SSH_PATH }}/compose.yaml
+    steps:
+      - uses: appleboy/ssh-action@master
+        with:
+          host: ${{secrets.BEGET_SSH_HOST}}
+          username: ${{secrets.BEGET_SSH_USER}}
+          key: ${{secrets.BEGET_SSH_KEY}}
+          port: ${{secrets.BEGET_SSH_PORT}}
+          script: |
+            docker compose -f ${{ env.CONFIG_FILE }} pull ${{ env.SERVICE_NAME }} && \
+            docker compose -f ${{ env.CONFIG_FILE }} up ${{ env.SERVICE_NAME }} \
+              --no-deps \
+              --detach \
+              --wait \
+              --wait-timeout 60
+
+            DANGLING=$(docker images --filter "dangling=true" -q --no-trunc)
+            if [ -n "$DANGLING" ]; then
+              docker rmi $DANGLING || true
+            fi
