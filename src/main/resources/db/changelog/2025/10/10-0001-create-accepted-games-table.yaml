@@ -1,0 +1,84 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-accepted-games-table
+      author: svifty7
+      changes:
+        - createTable:
+            tableName: accepted_games
+            schemaName: rudagames
+            columns:
+              - column:
+                  name: uuid
+                  type: uuid
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                    unique: true
+
+              - column:
+                  name: event_uuid
+                  type: uuid
+                  constraints:
+                    unique: true
+                    nullable: false
+
+              - column:
+                  name: accepted_at
+                  type: timestamp
+
+              - column:
+                  name: team_id
+                  type: integer
+
+              - column:
+                  name: notified_at
+                  type: timestamp
+
+  - changeSet:
+      id: add-foreign-keys-to-accepted-games-and-events-table
+      author: svifty7
+      changes:
+        - addForeignKeyConstraint:
+            constraintName: fk_accepted_games_event_uuid
+            baseTableName: accepted_games
+            baseColumnNames: event_uuid
+            baseTableSchemaName: rudagames
+            referencedTableName: events
+            referencedColumnNames: uuid
+            referencedTableSchemaName: rudagames
+
+        - addForeignKeyConstraint:
+            constraintName: fk_accepted_games_team
+            baseTableSchemaName: rudagames
+            baseTableName: accepted_games
+            baseColumnNames: team_id
+            referencedTableSchemaName: rudagames
+            referencedTableName: teams
+            referencedColumnNames: id
+
+  - changeSet:
+      id: migrate-data-events-to-accepted-games
+      author: svifty7
+      changes:
+        - sql:
+            sql: >
+              insert into rudagames.accepted_games (event_uuid, accepted_at, team_id, notified_at)
+              select uuid, accepted_at, team_id, notified_at from rudagames.events;
+
+  - changeSet:
+      id: drop-moved-columns-from-events-to-accepted-games
+      author: svifty7
+      changes:
+        - dropColumn:
+            columnName: accepted_at
+            tableName: events
+            schemaName: rudagames
+        - dropColumn:
+            columnName: team_id
+            tableName: events
+            schemaName: rudagames
+        - dropColumn:
+            columnName: notified_at
+            tableName: events
+            schemaName: rudagames

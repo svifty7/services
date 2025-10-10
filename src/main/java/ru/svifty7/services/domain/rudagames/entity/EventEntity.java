@@ -16,6 +16,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Table(schema = "rudagames", name = "events")
 public class EventEntity {
+
     @Id
     @Column(updatable = false, nullable = false, unique = true)
     private UUID uuid;
@@ -30,7 +31,7 @@ public class EventEntity {
     private Instant registrationStartAt;
 
     @JoinColumn(name = "product_id", referencedColumnName = "id", nullable = false)
-    @ManyToOne(fetch = FetchType.LAZY, targetEntity = ProductEntity.class)
+    @ManyToOne(fetch = FetchType.EAGER, targetEntity = ProductEntity.class)
     private ProductEntity product;
 
     private String description;
@@ -66,26 +67,8 @@ public class EventEntity {
     @Column(name = "announced_at")
     private Instant announcedAt;
 
-    @Column(name = "accepted_at")
-    private Instant acceptedAt;
-
-    @JoinColumn(name = "team_id", referencedColumnName = "id")
-    @ManyToOne(fetch = FetchType.EAGER, targetEntity = TeamEntity.class)
-    private TeamEntity team;
-
-    @Column(name = "notified_at")
-    private Instant notifiedAt;
-
     private boolean getIsAnnounced() {
         return announcedAt != null;
-    }
-
-    private boolean getIsAccepted() {
-       return acceptedAt != null;
-    }
-
-    private boolean getIsNotified() {
-       return notifiedAt != null;
     }
 
 }

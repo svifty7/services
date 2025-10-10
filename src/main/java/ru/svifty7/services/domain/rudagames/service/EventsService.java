@@ -4,22 +4,22 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.svifty7.services.domain.rudagames.dto.AcceptedGame;
 import ru.svifty7.services.domain.rudagames.dto.CityEvent;
 import ru.svifty7.services.domain.rudagames.entity.EventEntity;
 import ru.svifty7.services.domain.rudagames.entity.ProductEntity;
-import ru.svifty7.services.domain.rudagames.entity.TeamEntity;
 import ru.svifty7.services.domain.rudagames.exception.NoEventsForNotifyException;
 import ru.svifty7.services.domain.rudagames.exception.UpdateEventsException;
 import ru.svifty7.services.domain.rudagames.mapper.EventsMapper;
 import ru.svifty7.services.domain.rudagames.repository.EventsRepository;
 import ru.svifty7.services.domain.rudagames.repository.ProductsRepository;
-import ru.svifty7.services.domain.rudagames.repository.TeamsRepository;
 
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EventsService {
 
-    private final TeamsRepository teamsRepository;
     private final EventsRepository eventsRepository;
     private final ProductsRepository productsRepository;
 
@@ -43,14 +42,14 @@ public class EventsService {
     @Transactional
     public void updateEvents() {
         try {
-            List<CityEvent> cityEvents = rudagamesService.getEvents();
+            List<CityEvent> cityEvents = rudagamesService.loadActualEvents();
 
-            List<Integer> availableProductIds = productsRepository.findAll().stream()
-                    .map(ProductEntity::getId)
-                    .toList();
+            Map<Integer, ProductEntity> productsMap = productsRepository.findAll()
+                    .stream()
+                    .collect(Collectors.toMap(ProductEntity::getId, p -> p));
 
             List<CityEvent> filteredEvents = cityEvents.stream()
-                    .filter(cityEvent -> availableProductIds.contains(cityEvent.productId()))
+                    .filter(cityEvent -> productsMap.containsKey(cityEvent.productId()))
                     .toList();
 
             log.info("upcoming events count: {}", filteredEvents.size());
@@ -60,47 +59,24 @@ public class EventsService {
                     .toList();
 
             List<EventEntity> existingEvents = eventsRepository.findByUuidList(uuidList);
-
             Map<UUID, EventEntity> existingMap = existingEvents.stream()
                     .collect(Collectors.toMap(EventEntity::getUuid, Function.identity()));
 
             List<EventEntity> eventsToSave = new ArrayList<>();
-
             for (CityEvent cityEvent : filteredEvents) {
                 UUID uuid = cityEvent.eventRecordId();
                 EventEntity event = existingMap.get(uuid);
 
                 if (event != null) {
-                    eventsMapper.updateEntity(cityEvent, event);
+                    event = eventsMapper.toUpdate(cityEvent, event, productsMap);
                 } else {
-                    event = eventsMapper.toEntity(cityEvent);
+                    event = eventsMapper.toEntity(cityEvent, productsMap);
                 }
 
                 eventsToSave.add(event);
             }
 
-            List<AcceptedGame> acceptedGames = rudagamesService.getAcceptedGames();
-            log.info("accepted games: {}", acceptedGames.stream().map(AcceptedGame::eventRecordId));
-
-            List<TeamEntity> teams = teamsRepository.findAll();
-
-            for (EventEntity event : eventsToSave) {
-                Optional<AcceptedGame> acceptedGame = acceptedGames.stream()
-                        .filter(game -> game.eventRecordId().equals(event.getUuid())).findFirst();
-
-                if (acceptedGame.isEmpty()) {
-                    event.setAcceptedAt(null);
-                    event.setTeam(null);
-                } else {
-                    event.setAcceptedAt(acceptedGame.get().createdAt());
-                    event.setTeam(teams.stream()
-                            .filter(team -> team.getId().equals(acceptedGame.get().teamId())).findFirst()
-                            .orElse(null));
-                }
-            }
-
             eventsRepository.saveAll(eventsToSave);
-
             log.info("update events is done");
         } catch (Exception e) {
             log.error("update events failed", e);
@@ -138,7 +114,7 @@ public class EventsService {
         sb.append("🎲 ").append(e.getProduct().getName());
 
         if (e.getTag() != null && !e.getTag().isBlank()) {
-            sb.append(e.getTag());
+            sb.append(" ").append(e.getTag());
         }
 
         sb.append("\n").append("📌 ").append(e.getName());
@@ -146,61 +122,6 @@ public class EventsService {
 
         if (e.getDescription() != null && !e.getDescription().isBlank()) {
             sb.append('\n').append(e.getDescription().strip());
-        }
-
-        return sb.toString();
-    }
-
-    @Transactional
-    public void notifyAboutRegistration() {
-        updateEvents();
-
-        EventEntity event = eventsRepository.findLastAcceptedAndIsNotNotified()
-                .orElseThrow(NoEventsForNotifyException::new);
-
-        try {
-            vkService.sendMessageWithPhoto(getRegistrationNotifyMessage(event), event.getImageUrl());
-
-            log.info("users notified about registration on event with uuid[{}]", event.getUuid());
-
-            event.setNotifiedAt(Instant.now());
-            eventsRepository.save(event);
-
-            log.info("notified_at is updated for event with uuid[{}]", event.getUuid());
-        } catch (Exception e) {
-            log.error("error while notify users about registration: {}", e.getMessage(), e);
-        }
-    }
-
-    private String getRegistrationNotifyMessage(EventEntity e) {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("🎯 ")
-                .append(e.getTeam().getName())
-                .append(", перекличка!\n\n");
-
-        sb.append("🎲️ ").append(e.getProduct().getName());
-
-        if (e.getTag() != null && !e.getTag().isBlank()) {
-            sb.append(" ").append(e.getTag());
-        }
-
-        sb.append("\n")
-                .append("📌 ").append(e.getName().replaceFirst("(?i)" + e.getProduct().getName() + "\\s*", ""));
-
-        sb.append('\n')
-                .append("📅 Дата и время: ")
-                .append(DATE_TIME_FORMATTER.format(e.getPlayAt()))
-                .append('\n')
-                .append("👥 Мест: ")
-                .append(e.getMaxPlayersInTeam())
-                .append('\n')
-                .append("🧮 Мин. игроков: ")
-                .append(e.getMinPlayersInTeam());
-
-        if (e.getDescription() != null && !e.getDescription().isBlank()) {
-            sb.append("\n\n")
-                    .append(e.getDescription().strip());
         }
 
         return sb.toString();

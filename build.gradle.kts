@@ -39,7 +39,7 @@ dependencies {
 
     // Инфраструктура
     implementation("org.liquibase:liquibase-core")
-    implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
+    implementation("com.github.ben-manes.caffeine:caffeine:3.2.2")
     implementation("org.springframework.boot:spring-boot-starter-mail")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
     implementation("io.jsonwebtoken:jjwt:0.12.5")
@@ -48,6 +48,10 @@ dependencies {
     implementation("org.springframework:spring-aspects:6.2.11")
     implementation("commons-io:commons-io:2.18.0")
     implementation("com.vk.api:sdk:1.0.14")
+
+    // S3
+    implementation(platform("software.amazon.awssdk:bom:2.35.0"))
+    implementation("software.amazon.awssdk:s3")
 
     // okhttp
     implementation(platform("com.squareup.okhttp3:okhttp-bom:5.2.0"))
@@ -61,7 +65,7 @@ dependencies {
 
     // Annotation processors
     compileOnly("org.springframework.boot:spring-boot-configuration-processor")
-    compileOnly("org.projectlombok:lombok:1.18.32")
+    compileOnly("org.projectlombok:lombok:1.18.42")
     annotationProcessor("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
 

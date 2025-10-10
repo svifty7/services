@@ -27,25 +27,14 @@ public interface EventsRepository extends JpaRepository<EventEntity, UUID> {
     List<EventEntity> findByUuidList(List<UUID> uuidList);
 
     @Query(value = """
-        select *
-        from   rudagames.events e
-        where  e.accepted_at is not null
-          and  e.notified_at is null
-          and  e.play_at > current_timestamp
-        order  by e.play_at
-        limit  1
-        """, nativeQuery = true)
-    Optional<EventEntity> findLastAcceptedAndIsNotNotified();
-
-    @Query(value = """
-        select *
-        from   rudagames.events e
-        where  e.announced_at is null
-          and  e.accepted_at  is null
-          and  e.play_at      > current_timestamp
-        order  by e.registration_start_at
-        limit  1
-        """, nativeQuery = true)
+            select e.*
+            from rudagames.events e
+            left join rudagames.accepted_games ag on ag.event_uuid = e.uuid
+            where e.play_at > current_timestamp
+            and ag.uuid is null
+            and e.announced_at is null
+            order by e.registration_start_at
+            limit 1
+            """, nativeQuery = true)
     Optional<EventEntity> findLastNotAcceptedAndIsNotAnnounced();
-
 }

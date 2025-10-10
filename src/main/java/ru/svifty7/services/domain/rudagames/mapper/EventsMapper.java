@@ -1,48 +1,59 @@
 package ru.svifty7.services.domain.rudagames.mapper;
 
 import org.mapstruct.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import ru.svifty7.services.domain.rudagames.dto.CityEvent;
 import ru.svifty7.services.domain.rudagames.entity.EventEntity;
 import ru.svifty7.services.domain.rudagames.entity.ProductEntity;
-import ru.svifty7.services.domain.rudagames.repository.ProductsRepository;
 
-@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE, builder = @Builder(disableBuilder = true))
-public abstract class EventsMapper {
+import java.util.Map;
 
-    @Autowired
-    private ProductsRepository productsRepository;
+@Mapper(
+        componentModel = "spring",
+        unmappedTargetPolicy = ReportingPolicy.IGNORE,
+        builder = @Builder(disableBuilder = true)
+)
+public interface EventsMapper {
 
-    @Mapping(target = "uuid", source = "eventRecordId")
-    @Mapping(target = "name", source = "gameType")
-    @Mapping(target = "playAt", source = "playedAt")
-    @Mapping(target = "registrationStartAt", source = "registrationAt")
-    @Mapping(target = "maxPlayersInTeam", source = "maxTeamPlayers")
-    @Mapping(target = "minPlayersInTeam", source = "minTeamPlayers")
-    @Mapping(target = "tag", source = "commentTag")
-    @Mapping(target = "imageUrl", source = "mediaBanner.head")
-    @Mapping(target = "maxTeamCount", source = "teamCapacity")
-    @Mapping(target = "currentTeamCount", source = "takenTeam")
-    @Mapping(target = "product", source = "productId")
-    public abstract EventEntity toEntity(CityEvent event);
+    @Mapping(target = "uuid", source = "cityEvent.eventRecordId")
+    @Mapping(target = "name", source = "cityEvent.gameType")
+    @Mapping(target = "playAt", source = "cityEvent.playedAt")
+    @Mapping(target = "registrationStartAt", source = "cityEvent.registrationAt")
+    @Mapping(target = "maxPlayersInTeam", source = "cityEvent.maxTeamPlayers")
+    @Mapping(target = "minPlayersInTeam", source = "cityEvent.minTeamPlayers")
+    @Mapping(target = "tag", source = "cityEvent.commentTag")
+    @Mapping(target = "imageUrl", source = "cityEvent.mediaBanner.head")
+    @Mapping(target = "maxTeamCount", source = "cityEvent.teamCapacity")
+    @Mapping(target = "currentTeamCount", source = "cityEvent.takenTeam")
+    @Mapping(target = "product", source = "cityEvent")
+    EventEntity toEntity(
+            CityEvent cityEvent,
+            @Context Map<Integer, ProductEntity> productsMap
+    );
 
-    @Mapping(target = "uuid", source = "eventRecordId")
-    @Mapping(target = "name", source = "gameType")
-    @Mapping(target = "playAt", source = "playedAt")
-    @Mapping(target = "registrationStartAt", source = "registrationAt")
-    @Mapping(target = "maxPlayersInTeam", source = "maxTeamPlayers")
-    @Mapping(target = "minPlayersInTeam", source = "minTeamPlayers")
-    @Mapping(target = "tag", source = "commentTag")
-    @Mapping(target = "imageUrl", source = "mediaBanner.head")
-    @Mapping(target = "maxTeamCount", source = "teamCapacity")
-    @Mapping(target = "currentTeamCount", source = "takenTeam")
-    @Mapping(target = "product", source = "productId")
-    public abstract void updateEntity(CityEvent event, @MappingTarget EventEntity target);
+    @Mapping(target = "uuid", source = "cityEvent.eventRecordId")
+    @Mapping(target = "name", source = "cityEvent.gameType")
+    @Mapping(target = "playAt", source = "cityEvent.playedAt")
+    @Mapping(target = "registrationStartAt", source = "cityEvent.registrationAt")
+    @Mapping(target = "maxPlayersInTeam", source = "cityEvent.maxTeamPlayers")
+    @Mapping(target = "minPlayersInTeam", source = "cityEvent.minTeamPlayers")
+    @Mapping(target = "tag", source = "cityEvent.commentTag")
+    @Mapping(target = "imageUrl", source = "cityEvent.mediaBanner.head")
+    @Mapping(target = "maxTeamCount", source = "cityEvent.teamCapacity")
+    @Mapping(target = "currentTeamCount", source = "cityEvent.takenTeam")
+    @Mapping(target = "product", source = "cityEvent")
+    EventEntity toUpdate(
+            CityEvent cityEvent,
+            @MappingTarget EventEntity target,
+            @Context Map<Integer, ProductEntity> productsMap
+    );
 
-    public ProductEntity map(Integer productId) {
-        if (productId == null) {
+    default ProductEntity map(
+            CityEvent cityEvent,
+            @Context Map<Integer, ProductEntity> productsMap
+    ) {
+        if (cityEvent.productId() == null) {
             return null;
         }
-        return productsRepository.findById(productId).orElse(null);
+        return productsMap.get(cityEvent.productId());
     }
 }
