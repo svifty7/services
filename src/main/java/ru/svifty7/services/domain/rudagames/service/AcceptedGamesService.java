@@ -8,7 +8,6 @@ import ru.svifty7.services.domain.rudagames.dto.AcceptedGame;
 import ru.svifty7.services.domain.rudagames.entity.AcceptedGameEntity;
 import ru.svifty7.services.domain.rudagames.entity.EventEntity;
 import ru.svifty7.services.domain.rudagames.entity.TeamEntity;
-import ru.svifty7.services.domain.rudagames.exception.NoEventsForNotifyException;
 import ru.svifty7.services.domain.rudagames.mapper.AcceptedGamesMapper;
 import ru.svifty7.services.domain.rudagames.repository.AcceptedGamesRepository;
 import ru.svifty7.services.domain.rudagames.repository.EventsRepository;
@@ -44,7 +43,9 @@ public class AcceptedGamesService {
     @Transactional
     public void updateAcceptedGames() throws IOException {
         List<AcceptedGame> acceptedGames = rudagamesService.loadCurrentAcceptedGames();
+
         if (acceptedGames.isEmpty()) {
+            log.info("No accepted games to update");
             return;
         }
 
@@ -74,6 +75,7 @@ public class AcceptedGamesService {
                 .toList();
 
         acceptedGamesRepository.saveAll(acceptedGameEntities);
+        log.info("updated {} accepted games", acceptedGameEntities.size());
     }
 
     private AcceptedGameEntity mapToAcceptedGameEntities(
@@ -88,24 +90,33 @@ public class AcceptedGamesService {
                         .toEntity(acceptedGame, eventsMap, teamsMap));
     }
 
-
-
     @Transactional
     public void notifyAboutRegistration() throws IOException {
         updateAcceptedGames();
 
-        AcceptedGameEntity acceptedGame = acceptedGamesRepository.findClosestAcceptedAndNotNotified()
-                .orElseThrow(NoEventsForNotifyException::new);
+        acceptedGamesRepository.findClosestAcceptedAndNotNotified()
+                .ifPresentOrElse(
+                        this::sendRegistrationNotification,
+                        () -> log.info("no accepted games available for notification")
+                );
+    }
 
+    private void sendRegistrationNotification(AcceptedGameEntity acceptedGame) {
         EventEntity event = acceptedGame.getEvent();
 
         try {
-            vkService.sendMessageWithPhoto(getRegistrationNotifyMessage(event, acceptedGame), event.getImageUrl());
+            vkService.sendMessageWithPhoto(
+                    getRegistrationNotifyMessage(event, acceptedGame),
+                    event.getImageUrl()
+            );
 
             acceptedGame.setNotifiedAt(Instant.now());
             acceptedGamesRepository.save(acceptedGame);
+            log.info("registration notification sent for team [{}] and event [{}]",
+                    acceptedGame.getTeam().getId(), event.getUuid());
         } catch (Exception e) {
-            log.error("error while notify users about registration: {}", e.getMessage(), e);
+            log.error("failed to notify about registration for event [{}]: {}",
+                    event.getUuid(), e.getMessage(), e);
         }
     }
 

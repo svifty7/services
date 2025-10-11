@@ -7,8 +7,6 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.svifty7.services.domain.rudagames.dto.CityEvent;
 import ru.svifty7.services.domain.rudagames.entity.EventEntity;
 import ru.svifty7.services.domain.rudagames.entity.ProductEntity;
-import ru.svifty7.services.domain.rudagames.exception.NoEventsForNotifyException;
-import ru.svifty7.services.domain.rudagames.exception.UpdateEventsException;
 import ru.svifty7.services.domain.rudagames.mapper.EventsMapper;
 import ru.svifty7.services.domain.rudagames.repository.EventsRepository;
 import ru.svifty7.services.domain.rudagames.repository.ProductsRepository;
@@ -77,32 +75,31 @@ public class EventsService {
             }
 
             eventsRepository.saveAll(eventsToSave);
-            log.info("update events is done");
+            log.info("update events completed successfully, saved {} events", eventsToSave.size());
         } catch (Exception e) {
-            log.error("update events failed", e);
-            throw new UpdateEventsException();
+            log.error("failed to update events: {}", e.getMessage(), e);
         }
     }
-
 
     @Transactional
     public void announceEvent() {
         updateEvents();
 
-        EventEntity event = eventsRepository.findLastNotAcceptedAndIsNotAnnounced()
-                .orElseThrow(NoEventsForNotifyException::new);
+        eventsRepository.findLastNotAcceptedAndIsNotAnnounced()
+                .ifPresentOrElse(
+                        this::sendAnnouncement,
+                        () -> log.info("no events available for announcement")
+                );
+    }
 
+    private void sendAnnouncement(EventEntity event) {
         try {
             vkService.sendMessageWithPhoto(getAnnounceMessage(event), event.getImageUrl());
-
-            log.info("event with uuid[{}] announced", event.getUuid());
-
             event.setAnnouncedAt(Instant.now());
             eventsRepository.save(event);
-
-            log.info("announced_at is updated for event with uuid[{}]", event.getUuid());
+            log.info("event [{}] announced successfully", event.getUuid());
         } catch (Exception e) {
-            log.error("error while announce event: {}", e.getMessage(), e);
+            log.error("failed to announce event [{}]: {}", event.getUuid(), e.getMessage(), e);
         }
     }
 
