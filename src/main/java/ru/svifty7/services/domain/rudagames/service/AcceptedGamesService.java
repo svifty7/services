@@ -69,6 +69,7 @@ public class AcceptedGamesService {
                 .collect(Collectors.toMap(TeamEntity::getId, t -> t));
 
         List<AcceptedGameEntity> acceptedGameEntities = acceptedGames.stream()
+                .filter(ag -> teamsMap.containsKey(ag.teamId()))
                 .map(ag -> mapToAcceptedGameEntities(ag, eventsMap, teamsMap))
                 .toList();
 
