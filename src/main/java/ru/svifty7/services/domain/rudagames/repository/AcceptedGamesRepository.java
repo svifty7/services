@@ -44,4 +44,6 @@ public interface AcceptedGamesRepository extends JpaRepository<AcceptedGameEntit
             limit  1
             """)
     Optional<AcceptedGameEntity> findClosestAcceptedAndNotNotified();
+
+    Optional<AcceptedGameEntity> findByMessageId(int msgId);
 }

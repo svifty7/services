@@ -36,6 +36,12 @@ public class AcceptedGameEntity {
     @Column(name = "notified_at")
     private Instant notifiedAt;
 
+    @Column(name = "message_id")
+    private Integer messageId;
+
+    @Column(name = "players_count")
+    private Integer playersCount;
+
     public boolean getIsAccepted() {
        return acceptedAt != null;
     }

@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-accepted-games-columns-for-users-count
+      author: svifty7
+      changes:
+        - addColumn:
+            schemaName: rudagames
+            tableName: accepted_games
+            columns:
+              - column:
+                  name: message_id
+                  type: integer
+                  constraints:
+                    unique: true
+
+              - column:
+                  name: players_count
+                  type: integer

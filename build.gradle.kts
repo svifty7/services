@@ -47,6 +47,7 @@ dependencies {
     implementation("org.springframework.retry:spring-retry:2.0.11")
     implementation("org.springframework:spring-aspects:6.2.11")
     implementation("commons-io:commons-io:2.18.0")
+    implementation("com.ibm.icu:icu4j:77.1")
     implementation("com.vk.api:sdk:1.0.14")
 
     // S3

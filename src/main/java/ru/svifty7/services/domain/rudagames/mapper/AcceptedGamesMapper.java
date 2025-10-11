@@ -18,6 +18,8 @@ public interface AcceptedGamesMapper {
 
     @Mapping(target = "uuid", ignore = true)
     @Mapping(target = "notifiedAt", ignore = true)
+    @Mapping(target = "messageId", ignore = true)
+    @Mapping(target = "playersCount", ignore = true)
     @Mapping(target = "acceptedAt", source = "createdAt")
     @Mapping(target = "team", expression = "java(mapTeam(acceptedGame, teamsMap))")
     @Mapping(target = "event", expression = "java(mapEvent(acceptedGame, eventsMap))")
