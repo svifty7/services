@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import ru.svifty7.services.domain.rudagames.service.AcceptedGamesService;
 import ru.svifty7.services.domain.rudagames.service.EventsService;
 
 @Slf4j
@@ -12,6 +13,7 @@ import ru.svifty7.services.domain.rudagames.service.EventsService;
 public class ScheduledTasks {
 
     private final EventsService eventsService;
+    private final AcceptedGamesService acceptedGamesService;
 
     @Scheduled(cron = "0 7 13-19 * * *")
     public void announceEvent() {
@@ -25,7 +27,7 @@ public class ScheduledTasks {
     @Scheduled(cron = "0 23 13-19 * * *")
     public void notifyAboutRegistration() {
         try {
-            eventsService.announceEvent();
+            acceptedGamesService.notifyAboutRegistration();
         } catch (Exception ex) {
             log.error("error while notify about registration: {}", ex.getMessage(), ex);
         }
