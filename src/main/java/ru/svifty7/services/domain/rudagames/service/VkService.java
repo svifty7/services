@@ -105,19 +105,24 @@ public class VkService {
             SaveMessagesPhotoResponse photo = uploadPhoto(tempFile);
             String attachment = String.format("photo%s_%s", photo.getOwnerId(), photo.getId());
 
-            String response = vkApiClient.messages()
+            var query = vkApiClient.messages()
                     .send(groupActor)
                     .unsafeParam("peer_ids", String.valueOf(peerId))
                     .message(markdownText)
                     .attachment(attachment)
-                    .keyboard(keyboard)
                     .disableMentions(true)
-                    .randomId(random.nextInt())
-                    .executeAsString();
+                    .randomId(random.nextInt());
+
+            if (keyboard != null) {
+                query.keyboard(keyboard);
+            }
+
+            String response = query.executeAsString();
 
             JsonArray responseArray = JsonParser.parseString(response).getAsJsonObject()
                     .getAsJsonArray("response");
             JsonObject messageData = responseArray.get(0).getAsJsonObject();
+
             return messageData.get("conversation_message_id").getAsInt();
         } finally {
             if (!tempFile.delete()) {
