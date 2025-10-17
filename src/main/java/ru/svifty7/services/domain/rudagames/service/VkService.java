@@ -54,7 +54,8 @@ public class VkService {
     private final VkLongPollHandler longPollHandler;
     private final Gson gson = new Gson();
     private final ScheduledExecutorService scheduler;
-
+    private volatile boolean running = true;
+    private Thread longPollThread;
 
     public VkService(
             @Value("${vk.group.id}") int groupId,
@@ -66,7 +67,11 @@ public class VkService {
         this.groupActor = new GroupActor(groupId, accessToken);
         this.peerId = peerId;
         this.longPollHandler = longPollHandler;
-        this.scheduler = Executors.newSingleThreadScheduledExecutor();
+        this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "vk-scheduler");
+            t.setDaemon(true);
+            return t;
+        });
     }
 
     @EventListener(ApplicationStartedEvent.class)
@@ -75,26 +80,58 @@ public class VkService {
     }
 
     private void runLongPoll() {
-        try {
-            log.info("starting VK long poll...");
-            checkLongPollAvailability();
-            longPollHandler.run();
-        } catch (Exception e) {
-            log.error("long poll stopped: {}, restarting in 5 sec...", e.getMessage(), e);
-            scheduler.schedule(this::runLongPoll, 5, TimeUnit.SECONDS);
-        }
+        if (!running) return;
+
+        longPollThread = new Thread(() -> {
+            try {
+                log.info("starting VK long poll...");
+                checkLongPollAvailability();
+                longPollHandler.run();
+            } catch (Exception e) {
+                if (Thread.currentThread().isInterrupted()) {
+                    log.info("long poll interrupted");
+                    return;
+                }
+                if (running) {
+                    log.error("long poll stopped: {}, restarting in 5 sec...", e.getMessage(), e);
+                    scheduler.schedule(this::runLongPoll, 5, TimeUnit.SECONDS);
+                }
+            }
+        }, "vk-longpoll");
+
+        longPollThread.start();
     }
+
 
     @PreDestroy
     public void shutdown() {
+        log.info("shutting down VK service...");
+        running = false;
+
+        if (longPollThread != null && longPollThread.isAlive()) {
+            longPollThread.interrupt();
+            try {
+                longPollThread.join(5000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
         scheduler.shutdown();
         try {
-            if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
+            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
                 scheduler.shutdownNow();
             }
         } catch (InterruptedException e) {
             scheduler.shutdownNow();
             Thread.currentThread().interrupt();
+        }
+    }
+
+    // Публичный метод для использования в VkLongPollHandler
+    public void scheduleTask(Runnable task, long delay, TimeUnit unit) {
+        if (running) {
+            scheduler.schedule(task, delay, unit);
         }
     }
 

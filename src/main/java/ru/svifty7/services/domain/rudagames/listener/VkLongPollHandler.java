@@ -10,14 +10,15 @@ import com.vk.api.sdk.exceptions.ClientException;
 import com.vk.api.sdk.objects.callback.messages.CallbackMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import ru.svifty7.services.domain.rudagames.dto.callback.CallbackPayload;
 import ru.svifty7.services.domain.rudagames.dto.callback.AcceptedGameInvitePayload;
+import ru.svifty7.services.domain.rudagames.dto.callback.CallbackPayload;
 import ru.svifty7.services.domain.rudagames.dto.callback.TeamRegistrationPayload;
 import ru.svifty7.services.domain.rudagames.service.AcceptedGamesService;
 import ru.svifty7.services.domain.rudagames.service.VkService;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
@@ -38,7 +39,10 @@ public class VkLongPollHandler extends GroupLongPollApi {
 
     @Override
     protected String parse(CallbackMessage message) {
-        // Проверка на null type для защиты от падения
+        if (Thread.currentThread().isInterrupted()) {
+            return "ok";
+        }
+
         if (message == null || message.getType() == null) {
             log.warn("ignore empty type message");
             return null;
@@ -49,12 +53,20 @@ public class VkLongPollHandler extends GroupLongPollApi {
             if (object != null && object.has("event_id") && object.has("conversation_message_id")) {
                 return handleMessageEvent(object);
             }
-
             return super.parse(message);
         } catch (Exception e) {
             log.error("error while parsing message with type {}: {}", message.getType(), e.getMessage(), e);
             return "ok";
         }
+    }
+
+    private void scheduleEventCleanup(String eventId) {
+        if (eventId == null) return;
+
+        vkService.scheduleTask(() -> {
+            processedEvents.remove(eventId);
+            log.debug("cleaned up event from cache: {}", eventId);
+        }, 60, TimeUnit.SECONDS);
     }
 
     private String handleMessageEvent(JsonObject object) {
@@ -136,17 +148,5 @@ public class VkLongPollHandler extends GroupLongPollApi {
         }
 
         return "OK";
-    }
-
-    private void scheduleEventCleanup(String eventId) {
-        new Thread(() -> {
-            try {
-                Thread.sleep(60000);
-                processedEvents.remove(eventId);
-                log.debug("cleaned up event from cache: {}", eventId);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }).start();
     }
 }
