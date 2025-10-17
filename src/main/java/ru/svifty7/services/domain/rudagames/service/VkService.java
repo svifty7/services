@@ -17,12 +17,14 @@ import com.vk.api.sdk.objects.photos.responses.SaveMessagesPhotoResponse;
 import com.vk.api.sdk.objects.users.Fields;
 import com.vk.api.sdk.objects.users.GetNameCase;
 import com.vk.api.sdk.objects.users.responses.GetResponse;
-import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import ru.svifty7.services.domain.rudagames.dto.VkUserInfo;
 import ru.svifty7.services.domain.rudagames.listener.VkLongPollHandler;
@@ -34,6 +36,9 @@ import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -48,6 +53,8 @@ public class VkService {
     private final Integer peerId;
     private final VkLongPollHandler longPollHandler;
     private final Gson gson = new Gson();
+    private final ScheduledExecutorService scheduler;
+
 
     public VkService(
             @Value("${vk.group.id}") int groupId,
@@ -59,19 +66,36 @@ public class VkService {
         this.groupActor = new GroupActor(groupId, accessToken);
         this.peerId = peerId;
         this.longPollHandler = longPollHandler;
+        this.scheduler = Executors.newSingleThreadScheduledExecutor();
     }
 
-    @PostConstruct
+    @EventListener(ApplicationStartedEvent.class)
     public void startLongPoll() {
-        new Thread(() -> {
-            try {
-                log.info("starting VK long poll...");
-                checkLongPollAvailability();
-                longPollHandler.run();
-            } catch (Exception e) {
-                log.error("long poll stopped: {}", e.getMessage(), e);
+        runLongPoll();
+    }
+
+    private void runLongPoll() {
+        try {
+            log.info("starting VK long poll...");
+            checkLongPollAvailability();
+            longPollHandler.run();
+        } catch (Exception e) {
+            log.error("long poll stopped: {}, restarting in 5 sec...", e.getMessage(), e);
+            scheduler.schedule(this::runLongPoll, 5, TimeUnit.SECONDS);
+        }
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        scheduler.shutdown();
+        try {
+            if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
+                scheduler.shutdownNow();
             }
-        }).start();
+        } catch (InterruptedException e) {
+            scheduler.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 
     private void checkLongPollAvailability() throws ClientException, ApiException {

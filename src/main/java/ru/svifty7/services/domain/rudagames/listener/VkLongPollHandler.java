@@ -38,13 +38,23 @@ public class VkLongPollHandler extends GroupLongPollApi {
 
     @Override
     protected String parse(CallbackMessage message) {
-        JsonObject object = message.getObject();
-
-        if (object != null && object.has("event_id") && object.has("conversation_message_id")) {
-            return handleMessageEvent(object);
+        // Проверка на null type для защиты от падения
+        if (message == null || message.getType() == null) {
+            log.warn("ignore empty type message");
+            return null;
         }
 
-        return super.parse(message);
+        try {
+            JsonObject object = message.getObject();
+            if (object != null && object.has("event_id") && object.has("conversation_message_id")) {
+                return handleMessageEvent(object);
+            }
+
+            return super.parse(message);
+        } catch (Exception e) {
+            log.error("error while parsing message with type {}: {}", message.getType(), e.getMessage(), e);
+            return "ok";
+        }
     }
 
     private String handleMessageEvent(JsonObject object) {
