@@ -43,11 +43,6 @@ public class VkLongPollHandler extends GroupLongPollApi {
             return "ok";
         }
 
-        if (message == null || message.getType() == null) {
-            log.warn("ignore empty type message");
-            return null;
-        }
-
         try {
             JsonObject object = message.getObject();
             if (object != null && object.has("event_id") && object.has("conversation_message_id")) {
@@ -139,7 +134,7 @@ public class VkLongPollHandler extends GroupLongPollApi {
             try {
                 vkService.sendCallbackAnswerToSnackbar(eventId, userId, peerIdFromEvent, "🤨 Хм... Похоже на какую-то ошибку...");
             } catch (Exception ex) {
-                log.error("failed to send error response: {}", ex.getMessage());
+                log.error("failed to send error response: {}", ex.getMessage(), e);
             }
         }
 
